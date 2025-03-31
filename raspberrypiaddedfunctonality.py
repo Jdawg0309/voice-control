@@ -10,20 +10,17 @@ import requests
 import random
 from dotenv import load_dotenv
 import os
-
-# Initialize OpenAI client
-load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
 import RPi.GPIO as GPIO
 from time import sleep
 
-# Setup GPIO pins
 RED_PIN = 26
 GREEN_PIN = 20
 BLUE_PIN = 21
 
-# Initialize PWM frequency (Hz)
+red_pwm =None
+green_pmw = None
+blue_pwm = None
+
 PWM_FREQ = 100
 
 def setup_led():
@@ -62,6 +59,11 @@ def cleanup():
     blue_pwm.stop()
     GPIO.cleanup()
 
+# Load environment variables first
+load_dotenv()
+
+# Initialize OpenAI client with API key from .env
+
 
 def listen():
     r = sr.Recognizer()
@@ -72,7 +74,7 @@ def listen():
     try:
         text = r.recognize_google(audio)
         print(f"You said: {text}")
-        return text.lower()
+        return text.lower()  # Convert to lowercase for easier matching
     except Exception as e:
         print("Error:", e)
         return ""
@@ -101,7 +103,7 @@ def tell_time():
 
 def fetch_weather():
     weather_api_key = "781b79b4bdf6f5ce702f22f81c87a459"
-    city = "New York"
+    city = "New York"  # You can make this dynamic
     try:
         response = requests.get(f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={weather_api_key}&units=metric")
         data = response.json()
@@ -119,7 +121,7 @@ def speak(text):
     tts.save("output.mp3")
 
     audio = AudioSegment.from_mp3("output.mp3")
-    audio.export("output.wav", format="wav")
+    audio.export("output.wav", format = "wav")
     os.system("aplay output.wav")
     os.remove("output.mp3")
     os.remove("output.wav")
@@ -127,16 +129,15 @@ def speak(text):
 def handle_command(command):
     if not command:
         return
-
     
-    
+    # Check for specific commands first
     if "search google for" in command:
         search_google(command)
     elif "search youtube for" in command:
         search_youtube(command)
     elif "tell me a joke" in command:
         tell_joke()
-    elif "time" in command or "what time is it" in command:
+    elif "what time is it" in command:
         tell_time()
     elif "weather" in command:
         fetch_weather()
@@ -159,6 +160,7 @@ def handle_command(command):
         turn_off()
         speak("LED turned off")
     else:
+        # For other commands, use OpenAI
         completion = client.chat.completions.create(
             model="gpt-4o",
             messages=[{"role": "user", "content": command}]
@@ -175,21 +177,7 @@ if __name__ == "__main__":
             if "exit" in command:
                 speak("Goodbye!")
                 break
-            wake_words = ["hey assistant", "hey pi"]
-            for wake_word in wake_words:
-                if wake_word in command:
-                    active = True
-                    actual_command = command.split(wake_word, 1)[-1].strip()
-                    if actual_command:
-                        handle_command(actual_command)
-                        active = False  # Require wake word again
-                    else:
-                        speak("How can I help you?")
-                    break  # Process only the first detected wake word
-        else:
-            command = listen()
-            if "exit" in command:
-                speak("Goodbye!")
-                break
-            handle_command(command)
-            active = False  # Require wake word again
+        wake_words = ["hey assistant", "hey pi"]
+        handle_command(command)
+
+        
