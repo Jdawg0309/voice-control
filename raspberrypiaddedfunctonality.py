@@ -79,6 +79,8 @@ def speak(text):
 def handle_command(command):
     if not command:
         return
+
+    
     
     if "search google for" in command:
         search_google(command)
@@ -90,6 +92,24 @@ def handle_command(command):
         tell_time()
     elif "weather" in command:
         fetch_weather()
+    elif "red" in command:
+        set_color(255, 0, 0)
+        speak("Setting color to red")
+    elif "green" in command:
+        set_color(0, 255, 0)
+        speak("Setting color to green")
+    elif "blue" in command:
+        set_color(0, 0, 255)
+        speak("Setting color to blue")
+    elif "yellow" in command:
+        set_color(255, 255, 0)
+        speak("Setting color to yellow")
+    elif "purple" in command:
+        set_color(128, 0, 128)
+        speak("Setting color to purple")
+    elif "turn off led" in command:
+        turn_off()
+        speak("LED turned off")
     else:
         completion = client.chat.completions.create(
             model="gpt-4o",
