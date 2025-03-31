@@ -11,6 +11,9 @@ import random
 from dotenv import load_dotenv
 import os
 
+# Initialize OpenAI client
+load_dotenv()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def listen():
     r = sr.Recognizer()
@@ -21,7 +24,7 @@ def listen():
     try:
         text = r.recognize_google(audio)
         print(f"You said: {text}")
-        return text.lower()  # Convert to lowercase for easier matching
+        return text.lower()
     except Exception as e:
         print("Error:", e)
         return ""
@@ -50,7 +53,7 @@ def tell_time():
 
 def fetch_weather():
     weather_api_key = "781b79b4bdf6f5ce702f22f81c87a459"
-    city = "New York"  # You can make this dynamic
+    city = "New York"
     try:
         response = requests.get(f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={weather_api_key}&units=metric")
         data = response.json()
@@ -68,7 +71,7 @@ def speak(text):
     tts.save("output.mp3")
 
     audio = AudioSegment.from_mp3("output.mp3")
-    audio.export("output.wav", format = "wav")
+    audio.export("output.wav", format="wav")
     os.system("aplay output.wav")
     os.remove("output.mp3")
     os.remove("output.wav")
@@ -77,7 +80,6 @@ def handle_command(command):
     if not command:
         return
     
-    # Check for specific commands first
     if "search google for" in command:
         search_google(command)
     elif "search youtube for" in command:
@@ -89,7 +91,6 @@ def handle_command(command):
     elif "weather" in command:
         fetch_weather()
     else:
-        # For other commands, use OpenAI
         completion = client.chat.completions.create(
             model="gpt-4o",
             messages=[{"role": "user", "content": command}]
@@ -99,9 +100,28 @@ def handle_command(command):
 
 if __name__ == "__main__":
     speak("Hello! How can I help you today?")
+    active = False
     while True:
-        command = listen()
-        if "exit" in command:
-            speak("Goodbye!")
-            break
-        handle_command(command)
+        if not active:
+            command = listen()
+            if "exit" in command:
+                speak("Goodbye!")
+                break
+            wake_words = ["hey assistant", "hey pi"]
+            for wake_word in wake_words:
+                if wake_word in command:
+                    active = True
+                    actual_command = command.split(wake_word, 1)[-1].strip()
+                    if actual_command:
+                        handle_command(actual_command)
+                        active = False  # Require wake word again
+                    else:
+                        speak("How can I help you?")
+                    break  # Process only the first detected wake word
+        else:
+            command = listen()
+            if "exit" in command:
+                speak("Goodbye!")
+                break
+            handle_command(command)
+            active = False  # Require wake word again
