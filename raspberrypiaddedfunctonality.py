@@ -15,6 +15,54 @@ import os
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+import RPi.GPIO as GPIO
+from time import sleep
+
+# Setup GPIO pins
+RED_PIN = 26
+GREEN_PIN = 20
+BLUE_PIN = 21
+
+# Initialize PWM frequency (Hz)
+PWM_FREQ = 100
+
+def setup_led():
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(RED_PIN, GPIO.OUT)
+    GPIO.setup(GREEN_PIN, GPIO.OUT)
+    GPIO.setup(BLUE_PIN, GPIO.OUT)
+    
+    # Create PWM instances
+    global red_pwm, green_pwm, blue_pwm
+    red_pwm = GPIO.PWM(RED_PIN, PWM_FREQ)
+    green_pwm = GPIO.PWM(GREEN_PIN, PWM_FREQ)
+    blue_pwm = GPIO.PWM(BLUE_PIN, PWM_FREQ)
+    
+    # Start PWM with 0% duty cycle (off)
+    red_pwm.start(0)
+    green_pwm.start(0)
+    blue_pwm.start(0)
+
+def set_color(red, green, blue):
+    """Set LED color using RGB values (0-255)"""
+    red_pwm.ChangeDutyCycle(red / 255 * 100)
+    green_pwm.ChangeDutyCycle(green / 255 * 100)
+    blue_pwm.ChangeDutyCycle(blue / 255 * 100)
+
+def turn_off():
+    """Turn off all colors"""
+    red_pwm.ChangeDutyCycle(0)
+    green_pwm.ChangeDutyCycle(0)
+    blue_pwm.ChangeDutyCycle(0)
+
+def cleanup():
+    turn_off()
+    red_pwm.stop()
+    green_pwm.stop()
+    blue_pwm.stop()
+    GPIO.cleanup()
+
+
 def listen():
     r = sr.Recognizer()
     with sr.Microphone() as source:
